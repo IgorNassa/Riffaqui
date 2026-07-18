@@ -1,0 +1,62 @@
+// RifaPro - Schema de dados
+// Documentação: https://pris.ly/d/prisma-schema
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+/// Situação de uma rifa dentro do seu ciclo de vida.
+enum StatusRifa {
+  RASCUNHO // Ainda sendo configurada
+  ATIVA // Aberta para venda de números
+  ENCERRADA // Vendas encerradas
+  SORTEADA // Ganhador já definido
+  CANCELADA
+}
+
+/// Situação do pagamento de um participante.
+enum StatusPagamento {
+  PENDENTE // Aguardando confirmação
+  PAGO // Pagamento confirmado (pix/dinheiro)
+  CANCELADO
+}
+
+/// Uma rifa/sorteio gerenciado no sistema.
+model Rifa {
+  id     String     @id @default(cuid())
+  nome   String
+  premio String
+  status StatusRifa @default(RASCUNHO)
+  data   DateTime   @default(now())
+
+  participantes Participante[]
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@index([status])
+  @@map("rifas")
+}
+
+/// Uma pessoa inscrita em uma rifa específica.
+model Participante {
+  id             String          @id @default(cuid())
+  nome           String
+  telefone       String?
+  statusPagamento StatusPagamento @default(PENDENTE) @map("status_pagamento")
+
+  rifaId String @map("rifa_id")
+  rifa   Rifa   @relation(fields: [rifaId], references: [id], onDelete: Cascade)
+
+  criadoEm     DateTime @default(now()) @map("criado_em")
+  atualizadoEm DateTime @updatedAt @map("atualizado_em")
+
+  @@index([rifaId])
+  @@index([statusPagamento])
+  @@map("participantes")
+}
